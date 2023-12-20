@@ -39,11 +39,123 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const { readFile, writeFile } = require('fs/promises');
+const { v4: uuidv4 } = require('uuid');
+
+const port = 4000;
+const app = express();
+
+app.use(bodyParser.json());
+
+const filePath = './todos.json';
+
+async function readTodosFile() {
+  try {
+    const data = await readFile(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    throw new Error('Unable to read file');
+  }
+}
+
+async function writeTodosFile(data) {
+  try {
+    await writeFile(filePath, JSON.stringify(data));
+  } catch (error) {
+    throw new Error('Unable to write to file');
+  }
+}
+
+app.get('/todos', async (req, res) => {
+  try {
+    const data = await readTodosFile();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(404).send(error.message);
+  }
+});
+
+app.get('/todos/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = await readTodosFile();
+    const selectedTodo = data.find(todo => todo.id === id);
+
+    if (!selectedTodo) {
+      throw new Error('Todo not found');
+    }
+
+    res.status(200).json(selectedTodo);
+  } catch (error) {
+    res.status(404).send(error.message);
+  }
+});
+
+app.post('/todos', async (req, res) => {
+  try {
+    const body = req.body;
+    const todos = await readTodosFile();
+
+    body.id = uuidv4();
+    todos.push(body);
+
+    await writeTodosFile(todos);
+
+    res.status(201).send(todos);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.put('/todos/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const todos = await readTodosFile();
+
+    const foundTodoIndex = todos.findIndex(todo => todo.id === id);
+
+    if (foundTodoIndex === -1) {
+      throw new Error('Todo not found');
+    }
+
+    todos[foundTodoIndex] = {
+      ...todos[foundTodoIndex],
+      ...req.body
+    };
+
+    await writeTodosFile(todos);
+
+    res.status(200).send('Successfully updated the todo');
+  } catch (err) {
+    res.status(404).send(err.message);
+  }
+})
+
+app.delete('/todos/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const todos = await readTodosFile()
+
+    const foundTodoIndex = todos.findIndex(todo => todo.id === id)
+    if (foundTodoIndex === -1) {
+      throw new Error('Todo not found');
+    }
+
+    todos.splice(foundTodoIndex, 1)
+    await writeTodosFile(todos)
+    res.status(200).send('Successfully deleted the todo')
+  } catch (err) {
+    res.status(404).send(err.message)
+  }
+
+})
+
+app.listen(port, () =>
+  console.log(`Listening on port ${port}`)
+);
+
+
+module.exports = app;

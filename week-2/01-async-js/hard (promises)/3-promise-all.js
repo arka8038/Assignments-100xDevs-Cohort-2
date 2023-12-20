@@ -5,19 +5,40 @@
  */
 
 function wait1(t) {
+    const promise = new Promise((res) => {
+        setTimeout(() => res(t), t * 1000)
+    })
 
+    return promise
 }
 
 function wait2(t) {
+    const promise = new Promise((res) => {
+        setTimeout(() => res(t), t * 1000)
+    })
 
+    return promise
 }
 
 function wait3(t) {
+    const promise = new Promise((res) => {
+        setTimeout(() => res(t), t * 1000)
+    })
 
+    return promise
 }
 
 function calculateTime(t1, t2, t3) {
-
+    Promise.all([wait1(t1), wait2(t2), wait3(t3)])
+        .then(res => {
+            let sum = 0
+            res.forEach(time => {
+                sum = sum + time
+            })
+            console.log(sum)
+        })
 }
+
+calculateTime(1, 2, 3)
 
 module.exports = calculateTime;
